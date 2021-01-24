@@ -1,6 +1,7 @@
 #:include pipe.kv
 
 FloatLayout:
+    id: bck_holder
     Background:
         id: background
         canvas.before:
@@ -16,10 +17,22 @@ FloatLayout:
                 size: self.width, 96
                 pos: self.pos[0], 0
                 texture: self.floor_texture
+    Label:
+        id: score
+        size_hint_y: None
+        height: 96
+        text: "0"
+        font_size: 40
     Button:
         text: "Start Game"
-        size_hint: None, None
-        on_release: app.start_game()
+        id: start_button
+        background_normal: "transparent.png"
+        background_down: "transparent.png"
+        on_release:
+            self.disabled = True
+            self.opacity = 0
+            app.start_game()
+            
     Bird:
         id: bird
         source: "bird1.png"

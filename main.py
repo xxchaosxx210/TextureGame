@@ -9,6 +9,8 @@ from pipe import Pipe
 import random
 
 FRAME_RATE = 1/60.
+WIDTH = 640
+HEIGHT = 480
 
 class Background(Widget):
     cloud_texture = ObjectProperty(None)
@@ -55,21 +57,33 @@ class Bird(Image):
     def on_touch_up(self, touch):
         self.source = "bird1.png"
         super().on_touch_up(touch)
+        
 
 class MainApp(App):
     
     pipes = []
     GRAVITY = 300
+    was_colliding = False
     
     def on_start(self):
+        # get holder instance, change holder size relative to the window size
+        # and reposition centre of window
+        #bck_holder = self.root
+        #bck_holder.size_hint = (None, None)
+        #bck_holder.size = (WIDTH, HEIGHT)
+        #bck_holder.pos_hint = None
+        #centre_x = (Window.width / 2) - (bck_holder.width / 2)
+        #centre_y = (Window.height / 2) - (bck_holder.height / 2)
+        #bck_holder.pos = (centre_x, centre_y)
         # set clock to 60 fps
-        Clock.schedule_interval(self.root.ids.background.scroll_textures, FRAME_RATE)
+        pass
     
     def start_game(self):
-        Clock.schedule_interval(self.move_bird, FRAME_RATE)
-        for pipe in self.pipes:
-            self.root.remove_widget(pipe)
+        self.was_colliding = False
+        self.root.ids.score.text = "0"
         self.pipes = []
+        # Game Loop
+        self.frames = Clock.schedule_interval(self.next_frame, FRAME_RATE)
         # Create the pipes
         # 5 Pipes per screen
         num_pipes = 5
@@ -82,38 +96,74 @@ class MainApp(App):
             pipe.pipe_centre = random.randint(96 + 100, self.root.height - 100)
             pipe.size_hint = (None, None)
             # spawn pipe off screen plus the offset distance between the pipes
-            pipe.pos = (i * distance_between_pipes, 96)
+            pipe.pos = (Window.width + (i * distance_between_pipes), 96)
             pipe.size = (64, self.root.height - 96)
             
             self.pipes.append(pipe)
             self.root.add_widget(pipe)
-            
-        # Move the pipes
-        Clock.schedule_interval(self.move_pipes, FRAME_RATE)
+    
+    def next_frame(self, time_passed):
+        self.root.ids.background.scroll_textures(time_passed)
+        self.move_bird(time_passed)
+        self.move_pipes(time_passed)
     
     def move_bird(self, time_passed):
         bird = self.root.ids.bird
         bird.y = bird.y + bird.velocity * time_passed
         bird.velocity = bird.velocity - self.GRAVITY * time_passed
-        print(f"Bird Y: {bird.y}, Bird Velocity: {bird.velocity}")
+        #print(f"Bird Y: {bird.y}, Bird Velocity: {bird.velocity}")
+        self.check_collisions()
+    
+    def check_collisions(self):
+        bird = self.root.ids.bird
+        is_colliding = False
+        # check if pipe and bird collide
+        for pipe in self.pipes:
+            if pipe.collide_widget(bird):
+                is_colliding = True
+                # Make sure that Bird is between Gap
+                if bird.y < (pipe.pipe_centre - pipe.GAP_SIZE/2.0):
+                    self.game_over()
+                if bird.top > (pipe.pipe_centre + pipe.GAP_SIZE/2.0):
+                    self.game_over()
+        if bird.y < 96:
+            bird.y = 96
+        if bird.y > Window.height:
+            self.game_over()
+        
+        if self.was_colliding and not is_colliding:
+            self.root.ids.score.text = str(int(self.root.ids.score.text) + 1)
+        
+        self.was_colliding = is_colliding
+    
+    def game_over(self):
+        self.root.ids.bird.source = "bird1.png"
+        self.root.ids.bird.pos = (20, (self.root.height - 96) / 2.0)
+        for pipe in self.pipes:
+            self.root.remove_widget(pipe)
+        self.pipes = []
+        self.frames.cancel()
+        self.root.ids.start_button.disabled = False
+        self.root.ids.start_button.opacity = 1
     
     def move_pipes(self, time_passed):
-        for pipe in self.pipes:
-            # decrment the pipe x position
-            pipe.x -= time_passed * 100
-        # check if pipe is moved off screen
-        pipe_xs = list(map(lambda pipe: pipe.x, self.pipes))
-        # find the highest x position in the pipes list
-        right_most_x = max(pipe_xs)
-        num_pipes = 5
-        # create the distance between the pipes
-        distance_between_pipes = Window.width / (num_pipes - 1)
-        # check if the furthest pipe to the right is off the screen
-        if right_most_x <= Window.width - distance_between_pipes:
-            # move the leftist pipe back to the right hand of the screen
-            most_left_pipe_index = pipe_xs.index(min(pipe_xs))
-            most_left_pipe = self.pipes[most_left_pipe_index]
-            most_left_pipe.x = Window.width
+        if self.pipes:
+            for pipe in self.pipes:
+                # decrment the pipe x position
+                pipe.x -= time_passed * 100
+            # check if pipe is moved off screen
+            pipe_xs = list(map(lambda pipe: pipe.x, self.pipes))
+            # find the highest x position in the pipes list
+            right_most_x = max(pipe_xs)
+            num_pipes = 5
+            # create the distance between the pipes
+            distance_between_pipes = Window.width / (num_pipes - 1)
+            # check if the furthest pipe to the right is off the screen
+            if right_most_x <= Window.width - distance_between_pipes:
+                # move the leftist pipe back to the right hand of the screen
+                most_left_pipe_index = pipe_xs.index(min(pipe_xs))
+                most_left_pipe = self.pipes[most_left_pipe_index]
+                most_left_pipe.x = Window.width
 
 def main():
     MainApp().run()
