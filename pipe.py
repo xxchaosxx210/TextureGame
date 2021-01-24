@@ -3,6 +3,7 @@ from kivy.uix.image import Image
 from kivy.properties import NumericProperty
 from kivy.properties import ObjectProperty
 from kivy.properties import ListProperty
+from kivy.clock import Clock
 
 class Pipe(Widget):
     # Numeric Attributes
@@ -25,6 +26,7 @@ class Pipe(Widget):
         self.pipe_body_texture.wrap = "repeat"
     
     def on_size(self, *args):
+        # handling texture repeat when window is resized
         lower_body_size = self.bottom_cap_position - self.bottom_body_position
         self.lower_pipe_tex_coords[5] = lower_body_size / 20.
         self.lower_pipe_tex_coords[7] = lower_body_size / 20.
@@ -32,3 +34,7 @@ class Pipe(Widget):
         top_body_size = self.top - self.top_body_position
         self.top_pipe_tex_coords[5] = top_body_size/20.0
         self.top_pipe_tex_coords[7] = top_body_size/20.0
+    
+    def on_pipe_centre(self, *args):
+        # call the on_size event in a different thread
+        Clock.schedule_once(self.on_size, 0)
