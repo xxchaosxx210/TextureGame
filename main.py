@@ -147,10 +147,15 @@ class MainApp(App):
         self.root.ids.start_button.opacity = 1
     
     def move_pipes(self, time_passed):
+        score = int(self.root.ids.score.text)
+        if score > 3:
+            pipe_speed = 200
+        else:
+            pipe_speed = 150
         if self.pipes:
             for pipe in self.pipes:
                 # decrment the pipe x position
-                pipe.x -= time_passed * 100
+                pipe.x -= time_passed * pipe_speed
             # check if pipe is moved off screen
             pipe_xs = list(map(lambda pipe: pipe.x, self.pipes))
             # find the highest x position in the pipes list
